@@ -1,3 +1,5 @@
+// TODO, Craft: better error handling?
+
 const std = @import("std");
 const fs = std.fs;
 
@@ -31,7 +33,7 @@ pub fn decode_register(byte: u8, w: bool) *const [2:0]u8 {
     return reg;
 }
 
-pub fn decode(bytes: []const u8, stdout_file: std.fs.File.Writer) !void {
+pub fn decode(bytes: []const u8, allocator: std.mem.Allocator) ![]u8 {
     const opcode = switch (bytes[0] & Masks.OPERAND) {
         0b10001000 => "mov",
         else => unreachable,
@@ -55,41 +57,45 @@ pub fn decode(bytes: []const u8, stdout_file: std.fs.File.Writer) !void {
     const reg = decode_register(bytes[1] & Masks.REG, w);
     const rm = decode_register(bytes[1] & Masks.RM, w);
 
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
     if (d) {
-        try stdout.print("{s} {s}, {s} \n", .{ opcode, reg, rm });
+        const string = try std.fmt.allocPrint(allocator, "{s} {s}, {s} \n", .{ opcode, reg, rm });
+        return string;
     } else {
-        try stdout.print("{s} {s}, {s} \n", .{ opcode, rm, reg });
+        const string = try std.fmt.allocPrint(allocator, "{s} {s}, {s} \n", .{ opcode, rm, reg });
+        return string;
     }
-
-    try bw.flush();
 }
 
 pub fn main() !void {
+    
+    // Memory arena
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
-
-    const stdout_file = std.io.getStdOut().writer();
     const allocator = arena.allocator();
 
-    const args = try std.process.argsAlloc(allocator);
+    // stdout
+    const stdout_file = std.io.getStdOut().writer();
+    var bw = std.io.bufferedWriter(stdout_file);
+    const stdout = bw.writer();
     
+    // Get file path from command line
+    const args = try std.process.argsAlloc(allocator);
     if (args.len != 2) {
         std.debug.print("Required argument: path to Binary File\n", .{});
         unreachable;
     }
     const binary_file_path = args[1];
-    std.debug.print("{s}\n", .{binary_file_path});
 
     // Read byte content from input file
     const bytes = try read_file(allocator, binary_file_path);
 
     // Loop over binary instructions, decode and flush to stdout
     var i: usize = 0;
+    try stdout.print("bits 16\n\n", .{});
     while (i < bytes.len) : (i += 2) {
-        const instruction: []u8 = bytes[i..i+2]; 
-        try decode(instruction, stdout_file);
+        const instruction_bytes: []u8 = bytes[i..i+2]; 
+        const asm_instruction: []u8 = try decode(instruction_bytes, allocator);
+        try stdout.writeAll(asm_instruction);
+        try bw.flush();
     }
 }
