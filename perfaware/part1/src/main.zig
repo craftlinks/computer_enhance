@@ -1,10 +1,5 @@
-// TODO: read binary file name from command line input
-// TODO: hande multiple instructions!
-
 const std = @import("std");
 const fs = std.fs;
-
-const FILE_NAME = "listing_0037_single_register_mov";
 
 const Masks = struct {
     const OPERAND = 0b11111100;
@@ -15,11 +10,8 @@ const Masks = struct {
     const RM = 0b00000111;
 };
 
-pub fn read_file(allocator: std.mem.Allocator) ![]u8 {
-    const bytes = try fs.cwd().readFileAlloc(allocator, FILE_NAME, 1024 * 1024);
-
-    std.debug.print("File Contents: {b} \n", .{bytes});
-
+pub fn read_file(allocator: std.mem.Allocator, binary_file_path: [:0]u8) ![]u8 {
+    const bytes = try fs.cwd().readFileAlloc(allocator, binary_file_path, 1024 * 1024);
     return bytes;
 }
 
@@ -67,9 +59,9 @@ pub fn decode(bytes: []const u8, stdout_file: std.fs.File.Writer) !void {
     const stdout = bw.writer();
 
     if (d) {
-        try stdout.print("{s} {s} {s}", .{ opcode, reg, rm });
+        try stdout.print("{s} {s}, {s} \n", .{ opcode, reg, rm });
     } else {
-        try stdout.print("{s} {s} {s}", .{ opcode, rm, reg });
+        try stdout.print("{s} {s}, {s} \n", .{ opcode, rm, reg });
     }
 
     try bw.flush();
@@ -82,9 +74,22 @@ pub fn main() !void {
     const stdout_file = std.io.getStdOut().writer();
     const allocator = arena.allocator();
 
-    // Read byte content from input file
-    const bytes = try read_file(allocator);
+    const args = try std.process.argsAlloc(allocator);
+    
+    if (args.len != 2) {
+        std.debug.print("Required argument: path to Binary File\n", .{});
+        unreachable;
+    }
+    const binary_file_path = args[1];
+    std.debug.print("{s}\n", .{binary_file_path});
 
-    // Decode the bytes and send to stdout
-    try decode(bytes, stdout_file);
+    // Read byte content from input file
+    const bytes = try read_file(allocator, binary_file_path);
+
+    // Loop over binary instructions, decode and flush to stdout
+    var i: usize = 0;
+    while (i < bytes.len) : (i += 2) {
+        const instruction: []u8 = bytes[i..i+2]; 
+        try decode(instruction, stdout_file);
+    }
 }
