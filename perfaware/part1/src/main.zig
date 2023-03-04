@@ -1,4 +1,5 @@
 // TODO, Craft: better error handling?
+// TODO: Maybe don't need allocator? Snoop from: https://gist.github.com/g-cassie/71365ed67f1ee99700decaccad551b8f
 
 const std = @import("std");
 const fs = std.fs;
