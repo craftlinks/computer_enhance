@@ -12,12 +12,12 @@ const Masks = struct {
     const RM = 0b00000111;
 };
 
-pub fn read_file(allocator: std.mem.Allocator, binary_file_path: [:0]u8) ![]u8 {
+fn read_file(allocator: std.mem.Allocator, binary_file_path: [:0]u8) ![]u8 {
     const bytes = try fs.cwd().readFileAlloc(allocator, binary_file_path, 1024 * 1024);
     return bytes;
 }
 
-pub fn decode_register(byte: u8, w: bool) *const [2:0]u8 {
+fn decode_register(byte: u8, w: bool) *const [2:0]u8 {
     const reg = switch (byte) {
         0b00000000             => if (w) "ax" else "al",
         0b00001000, 0b00000001 => if (w) "cx" else "cl",
@@ -33,7 +33,7 @@ pub fn decode_register(byte: u8, w: bool) *const [2:0]u8 {
     return reg;
 }
 
-pub fn decode(bytes: []const u8, allocator: std.mem.Allocator) ![]u8 {
+fn decode(bytes: []const u8, allocator: std.mem.Allocator) ![]u8 {
     const opcode = switch (bytes[0] & Masks.OPERAND) {
         0b10001000 => "mov",
         else => unreachable,
