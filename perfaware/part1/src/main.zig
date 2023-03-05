@@ -1,6 +1,5 @@
 // TODO, Craft: better error handling?
-// TODO: Maybe don't need allocator? Snoop from: https://gist.github.com/g-cassie/71365ed67f1ee99700decaccad551b8f
-// TODO: use bufPrint to print in fixed buffer size slice.
+// Still slight bug in code generation...
 
 const std = @import("std");
 const fs = std.fs;
@@ -9,7 +8,7 @@ const Mov = @import("Mov.zig");
 fn decode(buf: []u8, in_stream: anytype, asm_instruction_out: []u8) !void {
     
     if((buf[0] & 0b11111100) == 0b10001000) {try Mov.registerMemoryToFromMemory(buf, in_stream, asm_instruction_out);}
-    else if((buf[0] & 0b11110000) == 0b1011) {try Mov.immediateToRegister(buf, in_stream, asm_instruction_out);}
+    else if((buf[0] & 0b11110000) == 0b10110000) {try Mov.immediateToRegister(buf, in_stream, asm_instruction_out);}
     else unreachable;
 }
 
@@ -47,6 +46,7 @@ pub fn main() !void {
     // Assume an assembly instruction will never exceed 100 bytes in length.
     var asm_instruction: [100]u8 = [_]u8{0} ** 100;
     while (try in_stream.read(&buf) > 0) {
+        asm_instruction = [_]u8{0} ** 100;
         try decode(&buf, in_stream, &asm_instruction);
         try stdout.writeAll(&asm_instruction);
         try bw.flush();
