@@ -62,9 +62,21 @@ pub fn registerMemoryToFromMemory(buf: []u8, in_stream: anytype, asm_instruction
                 // we need to fetch DATA-8
                 _ = try in_stream.read(buf);
                 if (d) {
-                    _ = try std.fmt.bufPrint(asm_instruction_out, "mov {s}, [{s} + {d}]\n", .{ reg, result, buf[0] });
+                    if (buf[0] != 0) {
+                        _ = try std.fmt.bufPrint(asm_instruction_out, "mov {s}, [{s} + {d}]\n", .{ reg, result, buf[0] });
+                    }
+                    else {
+                         _ = try std.fmt.bufPrint(asm_instruction_out, "mov {s}, [{s}]\n", .{ reg, result});
+                    }
+                    
                 } else {
-                    _ = try std.fmt.bufPrint(asm_instruction_out, "mov [{s} + {d}], {s}\n", .{ result, buf[0], reg });
+                    if (buf[0] != 0) {
+                        _ = try std.fmt.bufPrint(asm_instruction_out, "mov [{s} + {d}], {s}\n", .{ result, buf[0], reg });
+
+                    }
+                    else {
+                        _ = try std.fmt.bufPrint(asm_instruction_out, "mov [{s}], {s}\n", .{ result, reg });
+                    }
                 }
             },
             0b10000000 => {

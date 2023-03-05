@@ -1,6 +1,3 @@
-// TODO, Craft: better error handling?
-// Still slight bug in code generation...
-
 const std = @import("std");
 const fs = std.fs;
 const Mov = @import("Mov.zig");
